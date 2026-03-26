@@ -21,6 +21,8 @@ RUN npm install -g @anthropic-ai/claude-code
 
 RUN npx playwright install --with-deps chromium
 
+RUN npm install -g @playwright/mcp
+
 RUN git config --global --add safe.directory '*'
 RUN echo "ALL ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/claude
 

@@ -20,6 +20,7 @@ Docker-based sandbox for running Claude Code in an isolated container. The host 
 - `CLAUDE_CODE_SKIP_PERMISSIONS=1` is set to enable `--dangerously-skip-permissions` by default.
 - `--add-host host.docker.internal:host-gateway` allows the container to reach host-exposed services (databases, APIs).
 - User identity is derived from the mounted directory's ownership (`stat -c '%u:%g'`), not from env vars, ensuring correct file permissions on created files.
+- Playwright MCP server (`@playwright/mcp`) is baked into the image. Enable with `claude mcp add -s user playwright -- npx @playwright/mcp@latest --headless`. MCP config lives in `~/.claude.json`, not `settings.json`.
 
 ## Commands
 

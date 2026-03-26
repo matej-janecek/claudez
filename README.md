@@ -22,6 +22,14 @@ chmod +x install.sh
 
 This builds the Docker image and adds the `claudez` shell function to your bashrc/zshrc/fish config.
 
+### Playwright MCP (optional)
+
+The image ships with Playwright and Chromium. To enable browser automation via MCP:
+
+```bash
+claude mcp add -s user playwright -- npx @playwright/mcp@latest --headless
+```
+
 To rebuild after changes (e.g. updating the Dockerfile):
 
 ```bash
