@@ -27,7 +27,7 @@ This builds the Docker image and adds the `claudez` shell function to your bashr
 The image ships with Playwright and Chromium. To enable browser automation via MCP:
 
 ```bash
-claude mcp add -s user playwright -- npx @playwright/mcp@latest --headless
+claude mcp add -s user playwright -- npx @playwright/mcp@latest --headless --no-sandbox
 ```
 
 To rebuild after changes (e.g. updating the Dockerfile):

@@ -72,6 +72,8 @@ claudez() {
     -e HOST_GID="$(id -g)" \
     -w "$(pwd)" \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
+    -e DISPLAY="$DISPLAY" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
     --add-host host.docker.internal:host-gateway \
     claudez "${claude_args[@]}"
 }
@@ -111,6 +113,8 @@ function claudez
     -e HOST_GID=(id -g) \
     -w (pwd) \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
     --add-host host.docker.internal:host-gateway \
     claudez $claude_args
 end
