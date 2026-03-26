@@ -127,10 +127,10 @@ install_shell_func() {
 
     if grep -q '# claudez:start' "$rc_file" 2>/dev/null; then
         warn "${shell_name}: claudez already exists in ${rc_file}, replacing..."
-        sed -i '/^# claudez:start$/,/^# claudez:end$/d' "$rc_file"
+        sed '/^# claudez:start$/,/^# claudez:end$/d' "$rc_file" > "$rc_file.tmp" && mv "$rc_file.tmp" "$rc_file"
     elif grep -q '# claudez - isolated Claude Code container' "$rc_file" 2>/dev/null; then
         warn "${shell_name}: removing legacy claudez block from ${rc_file}..."
-        sed -i '/# claudez - isolated Claude Code container/,/^}/d' "$rc_file"
+        sed '/# claudez - isolated Claude Code container/,/^}/d' "$rc_file" > "$rc_file.tmp" && mv "$rc_file.tmp" "$rc_file"
     fi
 
     echo "$func_body" >> "$rc_file"

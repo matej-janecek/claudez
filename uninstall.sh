@@ -15,10 +15,10 @@ remove_from_rc() {
     local shell_name="$2"
 
     if [ -f "$rc_file" ] && grep -q '# claudez:start' "$rc_file" 2>/dev/null; then
-        sed -i '/^# claudez:start$/,/^# claudez:end$/d' "$rc_file"
+        sed '/^# claudez:start$/,/^# claudez:end$/d' "$rc_file" > "$rc_file.tmp" && mv "$rc_file.tmp" "$rc_file"
         info "${shell_name}: removed from ${rc_file}"
     elif [ -f "$rc_file" ] && grep -q '# claudez - isolated Claude Code container' "$rc_file" 2>/dev/null; then
-        sed -i '/# claudez - isolated Claude Code container/,/^}/d' "$rc_file"
+        sed '/# claudez - isolated Claude Code container/,/^}/d' "$rc_file" > "$rc_file.tmp" && mv "$rc_file.tmp" "$rc_file"
         info "${shell_name}: removed legacy block from ${rc_file}"
     else
         warn "${shell_name}: not found in ${rc_file}, skipping"
