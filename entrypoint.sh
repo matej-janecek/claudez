@@ -37,6 +37,12 @@ chown "$USER_ID" "$HOME" "$HOME/.config" "$HOME/.local" "$HOME/.local/state" "$H
 chown -R "$USER_ID" "$HOME/.claude" "$HOME/.claude.json" "$HOME/.config/claude-code" \
     "$HOME/.local/state/claude" "$HOME/.local/share/claude"
 
+# Build skip-permissions flag from env var
+SKIP_PERMS=()
+if [ "${CLAUDE_CODE_SKIP_PERMISSIONS:-0}" = "1" ]; then
+    SKIP_PERMS=(--dangerously-skip-permissions)
+fi
+
 # Use the host's native binary if available (avoids npm launcher onboarding mismatch)
 NATIVE_BIN="$(ls -v "$HOME/.local/share/claude/versions/" 2>/dev/null | tail -1)"
 if [ -n "$NATIVE_BIN" ] && [ -x "$HOME/.local/share/claude/versions/$NATIVE_BIN" ]; then
@@ -45,8 +51,8 @@ if [ -n "$NATIVE_BIN" ] && [ -x "$HOME/.local/share/claude/versions/$NATIVE_BIN"
     ln -sf "$HOME/.local/share/claude/versions/$NATIVE_BIN" "$HOME/.local/bin/claude"
     chown -h "$USER_ID" "$HOME/.local/bin" "$HOME/.local/bin/claude"
     export PATH="$HOME/.local/bin:$PATH"
-    exec gosu "$USER_ID" "$HOME/.local/share/claude/versions/$NATIVE_BIN" "$@"
+    exec gosu "$USER_ID" "$HOME/.local/share/claude/versions/$NATIVE_BIN" "${SKIP_PERMS[@]}" "$@"
 fi
 
 # Fallback to npm-installed claude
-exec gosu "$USER_ID" claude "$@"
+exec gosu "$USER_ID" claude "${SKIP_PERMS[@]}" "$@"
