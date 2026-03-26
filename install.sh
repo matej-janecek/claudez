@@ -68,6 +68,8 @@ claudez() {
     "${extra_volumes[@]}" \
     "${network_args[@]}" \
     -e HOME="$HOME" \
+    -e HOST_UID="$(id -u)" \
+    -e HOST_GID="$(id -g)" \
     -w "$(pwd)" \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
     --add-host host.docker.internal:host-gateway \
@@ -105,6 +107,8 @@ function claudez
     $extra_volumes \
     $network_args \
     -e HOME=$HOME \
+    -e HOST_UID=(id -u) \
+    -e HOST_GID=(id -g) \
     -w (pwd) \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
     --add-host host.docker.internal:host-gateway \

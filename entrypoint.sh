@@ -1,9 +1,19 @@
 #!/bin/bash
 
-# Detect host user's UID:GID from the mounted working directory
-USER_ID="$(stat -c '%u:%g' "$(pwd)")"
-HOST_UID="${USER_ID%%:*}"
-HOST_GID="${USER_ID##*:}"
+# Use the caller's UID:GID passed from the shell function.
+# Falls back to stat on the working directory for backwards compatibility.
+if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
+    USER_ID="$HOST_UID:$HOST_GID"
+else
+    USER_ID="$(stat -c '%u:%g' "$(pwd)")"
+    HOST_UID="${USER_ID%%:*}"
+    HOST_GID="${USER_ID##*:}"
+fi
+
+if [ "$HOST_UID" -eq 0 ]; then
+    echo "ERROR: Refusing to run as root (UID 0). This would break host config ownership." >&2
+    exit 1
+fi
 
 # Ensure /etc/passwd entry for this UID points to the correct HOME.
 # The ubuntu:24.04 image ships a "ubuntu" user at UID 1000 with home /home/ubuntu,
