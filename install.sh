@@ -87,7 +87,11 @@ claudez() {
       echo "claudez: Docker socket not found at $docker_sock" >&2
       return 1
     fi
-    docker_args+=(-v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID="$(stat -c '%g' "$docker_sock")")
+    if [[ "$(uname)" == "Darwin" ]]; then
+      docker_args+=(-v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID="$(stat -f '%g' "$docker_sock")")
+    else
+      docker_args+=(-v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID="$(stat -c '%g' "$docker_sock")")
+    fi
   fi
   image_name="${image_name:-claudez}"
   echo ""
@@ -113,7 +117,7 @@ claudez() {
     -w "$(pwd)" \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
     -e DISPLAY="$DISPLAY" \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    $([[ -d /tmp/.X11-unix ]] && echo "-v /tmp/.X11-unix:/tmp/.X11-unix") \
     --add-host host.docker.internal:host-gateway \
     "$image_name" "${claude_args[@]}"
 }
@@ -168,7 +172,11 @@ function claudez
       echo "claudez: Docker socket not found at $docker_sock" >&2
       return 1
     end
-    set docker_args -v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID=(stat -c "%g" "$docker_sock")
+    if test (uname) = "Darwin"
+      set docker_args -v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID=(stat -f "%g" "$docker_sock")
+    else
+      set docker_args -v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID=(stat -c "%g" "$docker_sock")
+    end
   end
   if test -z "$image_name"
     set image_name claudez
@@ -200,7 +208,7 @@ function claudez
     -w (pwd) \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
     -e DISPLAY=$DISPLAY \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    (test -d /tmp/.X11-unix; and echo "-v /tmp/.X11-unix:/tmp/.X11-unix") \
     --add-host host.docker.internal:host-gateway \
     $image_name $claude_args
 end
