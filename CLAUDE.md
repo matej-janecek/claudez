@@ -51,4 +51,15 @@ Custom images must include `gosu`, `git`, and `entrypoint.sh`. Easiest approach:
 claudez                        # new session
 claudez --resume               # resume previous session
 claudez --image claudez-rust   # use custom image
+
+# Configure .claudez for current project
+claudez config                              # show current config
+claudez config image claudez-rust           # set image
+claudez config image                        # unset image
+claudez config docker on                    # enable docker socket
+claudez config docker off                   # disable docker socket
+claudez config volume /data/models          # add volume mount
+claudez config volume /src:/dst:ro          # add volume (full Docker syntax)
+claudez config volume --remove /data/models # remove volume mount
+claudez config --reset                      # delete .claudez file
 ```

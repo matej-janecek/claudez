@@ -34,6 +34,91 @@ info "Config directories ready."
 # Shell function definitions
 BASH_ZSH_FUNC='# claudez:start
 claudez() {
+  if [[ "${1:-}" == "config" ]]; then
+    local config_file="$(pwd)/.claudez"
+    shift
+    if [[ $# -eq 0 ]]; then
+      if [[ -f "$config_file" ]]; then
+        echo -e "\033[0;36m.claudez:\033[0m $config_file"
+        echo ""
+        cat "$config_file"
+      else
+        echo "No .claudez in current directory."
+      fi
+      return
+    fi
+    case "$1" in
+      image)
+        if [[ -f "$config_file" ]]; then
+          grep -v "^image=" "$config_file" > "$config_file.tmp" 2>/dev/null; mv "$config_file.tmp" "$config_file"
+        fi
+        if [[ -n "${2:-}" ]]; then
+          touch "$config_file"
+          echo "image=$2" >> "$config_file"
+          echo -e "\033[0;32m[✓]\033[0m Set image=$2"
+        else
+          echo -e "\033[0;32m[✓]\033[0m Unset image"
+        fi
+        ;;
+      docker)
+        if [[ -f "$config_file" ]]; then
+          grep -v "^docker=" "$config_file" > "$config_file.tmp" 2>/dev/null; mv "$config_file.tmp" "$config_file"
+        fi
+        if [[ "${2:-}" == "on" ]] || [[ "${2:-}" == "true" ]]; then
+          touch "$config_file"
+          echo "docker=true" >> "$config_file"
+          echo -e "\033[0;32m[✓]\033[0m Enabled docker"
+        else
+          echo -e "\033[0;32m[✓]\033[0m Disabled docker"
+        fi
+        ;;
+      volume)
+        shift
+        if [[ "${1:-}" == "--remove" ]]; then
+          if [[ -z "${2:-}" ]]; then
+            echo "Usage: claudez config volume --remove <path>" >&2
+            return 1
+          fi
+          if [[ -f "$config_file" ]]; then
+            grep -Fxv "volume=$2" "$config_file" > "$config_file.tmp" 2>/dev/null; mv "$config_file.tmp" "$config_file"
+            echo -e "\033[0;32m[✓]\033[0m Removed volume $2"
+          else
+            echo "No .claudez in current directory." >&2
+          fi
+        elif [[ -n "${1:-}" ]]; then
+          touch "$config_file"
+          echo "volume=$1" >> "$config_file"
+          echo -e "\033[0;32m[✓]\033[0m Added volume $1"
+        else
+          echo "Usage: claudez config volume <path> | claudez config volume --remove <path>" >&2
+          return 1
+        fi
+        ;;
+      --reset)
+        rm -f "$config_file"
+        echo -e "\033[0;32m[✓]\033[0m Removed .claudez"
+        ;;
+      *)
+        cat >&2 <<USAGE
+Usage: claudez config [command]
+
+Commands:
+  image <name>            Set Docker image
+  image                   Unset Docker image
+  docker on|off           Enable/disable Docker socket
+  volume <path>           Add a volume mount
+  volume --remove <path>  Remove a volume mount
+  --reset                 Delete .claudez file
+
+USAGE
+        return 1
+        ;;
+    esac
+    if [[ -f "$config_file" ]] && [[ ! -s "$config_file" ]]; then
+      rm -f "$config_file"
+    fi
+    return
+  fi
   local extra_volumes=()
   local network_args=()
   local docker_args=()
@@ -138,6 +223,74 @@ claudez() {
 
 FISH_FUNC='# claudez:start
 function claudez
+  if test (count $argv) -ge 1; and test "$argv[1]" = config
+    set -l config_file (pwd)/.claudez
+    set -e argv[1]
+    if test (count $argv) -eq 0
+      if test -f $config_file
+        set_color cyan; echo -n ".claudez:"; set_color normal; echo "  $config_file"
+        echo ""
+        cat $config_file
+      else
+        echo "No .claudez in current directory."
+      end
+      return
+    end
+    switch $argv[1]
+      case image
+        if test -f $config_file
+          grep -v "^image=" $config_file > $config_file.tmp 2>/dev/null; mv $config_file.tmp $config_file
+        end
+        if test (count $argv) -ge 2
+          touch $config_file
+          echo "image=$argv[2]" >> $config_file
+          set_color green; echo -n "[✓]"; set_color normal; echo " Set image=$argv[2]"
+        else
+          set_color green; echo -n "[✓]"; set_color normal; echo " Unset image"
+        end
+      case docker
+        if test -f $config_file
+          grep -v "^docker=" $config_file > $config_file.tmp 2>/dev/null; mv $config_file.tmp $config_file
+        end
+        if test (count $argv) -ge 2; and contains -- $argv[2] on true
+          touch $config_file
+          echo "docker=true" >> $config_file
+          set_color green; echo -n "[✓]"; set_color normal; echo " Enabled docker"
+        else
+          set_color green; echo -n "[✓]"; set_color normal; echo " Disabled docker"
+        end
+      case volume
+        if test (count $argv) -ge 2; and test "$argv[2]" = --remove
+          if test (count $argv) -lt 3
+            echo "Usage: claudez config volume --remove <path>" >&2
+            return 1
+          end
+          if test -f $config_file
+            grep -Fxv "volume=$argv[3]" $config_file > $config_file.tmp 2>/dev/null; mv $config_file.tmp $config_file
+            set_color green; echo -n "[✓]"; set_color normal; echo " Removed volume $argv[3]"
+          else
+            echo "No .claudez in current directory." >&2
+          end
+        else if test (count $argv) -ge 2
+          touch $config_file
+          echo "volume=$argv[2]" >> $config_file
+          set_color green; echo -n "[✓]"; set_color normal; echo " Added volume $argv[2]"
+        else
+          echo "Usage: claudez config volume <path> | claudez config volume --remove <path>" >&2
+          return 1
+        end
+      case --reset
+        rm -f $config_file
+        set_color green; echo -n "[✓]"; set_color normal; echo " Removed .claudez"
+      case "*"
+        echo "Usage: claudez config [image|docker|volume|--reset]" >&2
+        return 1
+    end
+    if test -f $config_file; and not test -s $config_file
+      rm -f $config_file
+    end
+    return
+  end
   set -l extra_volumes
   set -l network_args
   set -l docker_args
