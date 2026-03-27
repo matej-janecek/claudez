@@ -10,9 +10,8 @@ else
     HOST_GID="${USER_ID##*:}"
 fi
 
-if [ "$HOST_UID" -eq 0 ] && [ "${CLAUDEZ_ALLOW_ROOT:-0}" != "1" ]; then
+if [ "$HOST_UID" -eq 0 ]; then
     echo "ERROR: Refusing to run as root (UID 0). This would break host config ownership." >&2
-    echo "       Use --allow-root flag or set allow-root=true in .claudez to override." >&2
     exit 1
 fi
 
