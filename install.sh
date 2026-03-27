@@ -36,8 +36,10 @@ BASH_ZSH_FUNC='# claudez:start
 claudez() {
   local extra_volumes=()
   local network_args=()
+  local docker_args=()
   local claude_args=()
   local image_name=""
+  local use_docker=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --image)
@@ -57,16 +59,43 @@ claudez() {
         network_args+=(--network "${1:?Missing network name for -n}")
         shift
         ;;
+      --docker)
+        use_docker=1
+        shift
+        ;;
       *)
         claude_args+=("$1")
         shift
         ;;
     esac
   done
-  if [[ -z "$image_name" ]] && [[ -f "$(pwd)/.claudez-image" ]]; then
-    image_name="$(cat "$(pwd)/.claudez-image" | tr -d "[:space:]")"
+  if [[ -f "$(pwd)/.claudez" ]]; then
+    while IFS='=' read -r key value || [[ -n "$key" ]]; do
+      key="${key// /}"
+      value="${value// /}"
+      case "$key" in
+        \#*|"") ;;
+        image) [[ -z "$image_name" ]] && image_name="$value" ;;
+        docker) [[ "$value" == "true" ]] && use_docker=1 ;;
+      esac
+    done < "$(pwd)/.claudez"
+  fi
+  if [[ "$use_docker" -eq 1 ]]; then
+    local docker_sock="${DOCKER_HOST:-/var/run/docker.sock}"
+    docker_sock="${docker_sock#unix://}"
+    if [[ ! -S "$docker_sock" ]]; then
+      echo "claudez: Docker socket not found at $docker_sock" >&2
+      return 1
+    fi
+    docker_args+=(-v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID="$(stat -c '%g' "$docker_sock")")
   fi
   image_name="${image_name:-claudez}"
+  echo ""
+  echo -e "\033[0;36m   image:\033[0m  $image_name"
+  echo -e "\033[0;36m  docker:\033[0m  $([[ "$use_docker" -eq 1 ]] && echo "on" || echo "off")"
+  [[ ${#extra_volumes[@]} -gt 0 ]] && echo -e "\033[0;36m volumes:\033[0m  ${extra_volumes[*]//-v /}"
+  [[ ${#network_args[@]} -gt 0 ]] && echo -e "\033[0;36m network:\033[0m  ${network_args[*]//--network /}"
+  echo ""
   mkdir -p "$HOME/.local/share/claude" "$HOME/.local/state/claude"
   docker run -it --rm \
     -v "$(pwd)":"$(pwd)" \
@@ -77,6 +106,7 @@ claudez() {
     -v "$HOME/.local/state/claude:$HOME/.local/state/claude" \
     "${extra_volumes[@]}" \
     "${network_args[@]}" \
+    "${docker_args[@]}" \
     -e HOME="$HOME" \
     -e HOST_UID="$(id -u)" \
     -e HOST_GID="$(id -g)" \
@@ -93,8 +123,10 @@ FISH_FUNC='# claudez:start
 function claudez
   set -l extra_volumes
   set -l network_args
+  set -l docker_args
   set -l claude_args
   set -l image_name ""
+  set -l use_docker 0
   set -l i 1
   while test $i -le (count $argv)
     if test "$argv[$i]" = "--image"
@@ -107,17 +139,50 @@ function claudez
     else if test "$argv[$i]" = "-n"
       set i (math $i + 1)
       set network_args $network_args --network $argv[$i]
+    else if test "$argv[$i]" = "--docker"
+      set use_docker 1
     else
       set claude_args $claude_args $argv[$i]
     end
     set i (math $i + 1)
   end
-  if test -z "$image_name"; and test -f (pwd)/.claudez-image
-    set image_name (string trim -- (cat (pwd)/.claudez-image))
+  if test -f (pwd)/.claudez
+    while read -l line
+      set line (string trim -- $line)
+      if string match -qr "^#" -- $line; or test -z "$line"
+        continue
+      end
+      set -l key (string replace -r "=.*" "" -- $line | string trim)
+      set -l value (string replace -r "[^=]*=" "" -- $line | string trim)
+      if test "$key" = image; and test -z "$image_name"
+        set image_name $value
+      else if test "$key" = docker; and test "$value" = true
+        set use_docker 1
+      end
+    end < (pwd)/.claudez
+  end
+  if test "$use_docker" -eq 1
+    set -l docker_sock (set -q DOCKER_HOST; and echo $DOCKER_HOST; or echo /var/run/docker.sock)
+    set docker_sock (string replace "unix://" "" -- $docker_sock)
+    if not test -S "$docker_sock"
+      echo "claudez: Docker socket not found at $docker_sock" >&2
+      return 1
+    end
+    set docker_args -v "$docker_sock:/var/run/docker.sock" -e DOCKER_SOCK_GID=(stat -c "%g" "$docker_sock")
   end
   if test -z "$image_name"
     set image_name claudez
   end
+  echo ""
+  set_color cyan; echo -n "   image:"; set_color normal; echo "  $image_name"
+  set_color cyan; echo -n "  docker:"; set_color normal; test "$use_docker" -eq 1; and echo "  on"; or echo "  off"
+  if test (count $extra_volumes) -gt 0
+    set_color cyan; echo -n " volumes:"; set_color normal; echo "  "(string replace -a -- "-v " "" "$extra_volumes")
+  end
+  if test (count $network_args) -gt 0
+    set_color cyan; echo -n " network:"; set_color normal; echo "  "(string replace -a -- "--network " "" "$network_args")
+  end
+  echo ""
   mkdir -p $HOME/.local/share/claude $HOME/.local/state/claude
   docker run -it --rm \
     -v (pwd):(pwd) \
@@ -128,6 +193,7 @@ function claudez
     -v $HOME/.local/state/claude:$HOME/.local/state/claude \
     $extra_volumes \
     $network_args \
+    $docker_args \
     -e HOME=$HOME \
     -e HOST_UID=(id -u) \
     -e HOST_GID=(id -g) \

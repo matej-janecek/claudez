@@ -28,6 +28,17 @@ else
     useradd -u "$HOST_UID" -g "$HOST_GID" -d "$HOME" -s /bin/bash -M hostuser 2>/dev/null
 fi
 
+# Docker socket group: add the user to a group matching the host's docker socket GID
+if [ -n "$DOCKER_SOCK_GID" ]; then
+    DOCKER_GROUP="$(getent group "$DOCKER_SOCK_GID" 2>/dev/null | cut -d: -f1)"
+    if [ -z "$DOCKER_GROUP" ]; then
+        groupadd -g "$DOCKER_SOCK_GID" docker 2>/dev/null
+        DOCKER_GROUP="docker"
+    fi
+    USERNAME="$(getent passwd "$HOST_UID" | cut -d: -f1)"
+    usermod -aG "$DOCKER_GROUP" "$USERNAME"
+fi
+
 # Ensure home and config directories exist with correct ownership
 mkdir -p "$HOME/.claude" "$HOME/.config/claude-code" "$HOME/.local/state/claude" "$HOME/.local/share/claude"
 touch "$HOME/.claude.json"

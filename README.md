@@ -62,20 +62,32 @@ Connect to a Docker network (e.g. to reach project databases):
 claudez -n myapp_default
 ```
 
+Enable Docker Compose support (mounts host Docker socket):
+
+```bash
+claudez --docker
+```
+
+> **Security note:** `--docker` mounts the host Docker socket, which effectively grants root-equivalent access to the host. Only use in trusted environments.
+
 Use a custom Docker image:
 
 ```bash
 claudez --image claudez-rust
 ```
 
-Or set a per-project default by creating a `.claudez-image` file:
+Or set per-project defaults in a `.claudez` config file:
 
-```bash
-echo "claudez-rust" > .claudez-image
-claudez   # automatically uses claudez-rust
+```
+image=claudez-rust
+docker=true
 ```
 
-Priority: `--image` flag > `.claudez-image` file > default `claudez`.
+```bash
+claudez   # automatically uses claudez-rust with Docker socket
+```
+
+CLI flags (`--image`, `--docker`) override `.claudez` values.
 
 Combine flags:
 
@@ -92,7 +104,7 @@ claudez --image claudez-go --model opus
 | ~/.claude config | Read/Write (mounted, for auth & sessions) |
 | Rest of filesystem | No access |
 | Windows drives | No access |
-| Docker socket | No access |
+| Docker socket | No access (unless `--docker`) |
 | Network | Full (needed for Claude API) |
 
 ## Connecting to project databases

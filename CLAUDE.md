@@ -20,13 +20,16 @@ Docker-based sandbox for running Claude Code in an isolated container. The host 
 - `CLAUDE_CODE_SKIP_PERMISSIONS=1` is set to enable `--dangerously-skip-permissions` by default.
 - `--add-host host.docker.internal:host-gateway` allows the container to reach host-exposed services (databases, APIs).
 - User identity is derived from the mounted directory's ownership (`stat -c '%u:%g'`), not from env vars, ensuring correct file permissions on created files.
+- `--docker` flag enables Docker Compose by mounting the host's Docker socket (`/var/run/docker.sock`). The entrypoint detects the socket's GID and adds the container user to a matching group. Opt-in because socket access grants root-equivalent host access.
 - Playwright MCP server (`@playwright/mcp`) is baked into the image. Enable with `claude mcp add -s user playwright -- npx @playwright/mcp@latest --headless --no-sandbox`. `--no-sandbox` is required because Chrome can't create namespaces inside Docker. MCP config lives in `~/.claude.json`, not `settings.json`.
 
 ## Custom Images
 
+Per-project config lives in a `.claudez` file (key=value format). Supported keys: `image`, `docker`. CLI flags override file values.
+
 The `claudez` shell function resolves the image to use in this order:
 1. `--image <name>` flag (highest priority)
-2. `.claudez-image` file in the current directory (contains the image name)
+2. `image=` in `.claudez` file
 3. Default `claudez` image
 
 Custom images must include `gosu`, `git`, and `entrypoint.sh`. Easiest approach: `FROM claudez` then add tooling.
