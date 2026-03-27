@@ -77,6 +77,19 @@ claudez() {
         \#*|"") ;;
         image) [[ -z "$image_name" ]] && image_name="$value" ;;
         docker) [[ "$value" == "true" ]] && use_docker=1 ;;
+        volume)
+          local vol_src="$value"
+          if [[ "$value" == *:* ]]; then
+            vol_src="${value%%:*}"
+            extra_volumes+=(-v "$value")
+          else
+            vol_src="$(cd "$value" 2>/dev/null && pwd || echo "$value")"
+            extra_volumes+=(-v "$vol_src:$vol_src")
+          fi
+          if [[ ! -e "$vol_src" ]]; then
+            echo -e "\033[1;33m[!]\033[0m volume path does not exist: $vol_src" >&2
+          fi
+          ;;
       esac
     done < "$(pwd)/.claudez"
   fi
@@ -162,6 +175,18 @@ function claudez
         set image_name $value
       else if test "$key" = docker; and test "$value" = true
         set use_docker 1
+      else if test "$key" = volume
+        set -l vol_src $value
+        if string match -q "*:*" -- $value
+          set vol_src (string replace -r ":.*" "" -- $value)
+          set extra_volumes $extra_volumes -v "$value"
+        else
+          set vol_src (realpath -- $value 2>/dev/null; or echo $value)
+          set extra_volumes $extra_volumes -v "$vol_src:$vol_src"
+        end
+        if not test -e "$vol_src"
+          echo "[!] volume path does not exist: $vol_src" >&2
+        end
       end
     end < (pwd)/.claudez
   end

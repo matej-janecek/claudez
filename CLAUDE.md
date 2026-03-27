@@ -25,7 +25,7 @@ Docker-based sandbox for running Claude Code in an isolated container. The host 
 
 ## Custom Images
 
-Per-project config lives in a `.claudez` file (key=value format). Supported keys: `image`, `docker`. CLI flags override file values.
+Per-project config lives in a `.claudez` file (key=value format). Supported keys: `image`, `docker`, `volume`. CLI flags override file values.
 
 The `claudez` shell function resolves the image to use in this order:
 1. `--image <name>` flag (highest priority)
