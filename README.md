@@ -62,11 +62,26 @@ Connect to a Docker network (e.g. to reach project databases):
 claudez -n myapp_default
 ```
 
+Use a custom Docker image:
+
+```bash
+claudez --image claudez-rust
+```
+
+Or set a per-project default by creating a `.claudez-image` file:
+
+```bash
+echo "claudez-rust" > .claudez-image
+claudez   # automatically uses claudez-rust
+```
+
+Priority: `--image` flag > `.claudez-image` file > default `claudez`.
+
 Combine flags:
 
 ```bash
 claudez -v ~/projects/other-repo -n myapp_default --resume
-claudez --model opus
+claudez --image claudez-go --model opus
 ```
 
 ## What's isolated
@@ -103,6 +118,45 @@ Restore from a backup:
 
 ```bash
 tar -xzf ~/claude-backups/claude_backup_20260326_120000.tar.gz -C /
+```
+
+## Custom images
+
+The default `claudez` image includes Node.js, Python, and Playwright. For projects that need different toolchains, build a custom image.
+
+### Extending the default image
+
+```dockerfile
+FROM claudez
+RUN apt-get update && apt-get install -y rustc cargo && rm -rf /var/lib/apt/lists/*
+```
+
+```bash
+docker build -t claudez-rust -f Dockerfile.rust .
+```
+
+### Building from scratch
+
+Custom images must include `gosu`, `git`, and the `entrypoint.sh` script. Minimal example:
+
+```dockerfile
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y curl gnupg git gosu sudo \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @anthropic-ai/claude-code \
+    && rm -rf /var/lib/apt/lists/*
+RUN git config --global --add safe.directory '*'
+RUN echo "ALL ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/claude
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+```
+
+### Rebuilding custom images
+
+```bash
+./rebuild.sh claudez-rust Dockerfile.rust
 ```
 
 ## Limitations

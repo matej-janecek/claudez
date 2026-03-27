@@ -37,8 +37,14 @@ claudez() {
   local extra_volumes=()
   local network_args=()
   local claude_args=()
+  local image_name=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      --image)
+        shift
+        image_name="${1:?Missing image name for --image}"
+        shift
+        ;;
       -v)
         shift
         local src="${1:?Missing path for -v}"
@@ -57,6 +63,10 @@ claudez() {
         ;;
     esac
   done
+  if [[ -z "$image_name" ]] && [[ -f "$(pwd)/.claudez-image" ]]; then
+    image_name="$(cat "$(pwd)/.claudez-image" | tr -d "[:space:]")"
+  fi
+  image_name="${image_name:-claudez}"
   mkdir -p "$HOME/.local/share/claude" "$HOME/.local/state/claude"
   docker run -it --rm \
     -v "$(pwd)":"$(pwd)" \
@@ -75,7 +85,7 @@ claudez() {
     -e DISPLAY="$DISPLAY" \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --add-host host.docker.internal:host-gateway \
-    claudez "${claude_args[@]}"
+    "$image_name" "${claude_args[@]}"
 }
 # claudez:end'
 
@@ -84,9 +94,13 @@ function claudez
   set -l extra_volumes
   set -l network_args
   set -l claude_args
+  set -l image_name ""
   set -l i 1
   while test $i -le (count $argv)
-    if test "$argv[$i]" = "-v"
+    if test "$argv[$i]" = "--image"
+      set i (math $i + 1)
+      set image_name $argv[$i]
+    else if test "$argv[$i]" = "-v"
       set i (math $i + 1)
       set -l src (realpath -- $argv[$i] 2>/dev/null; or echo $argv[$i])
       set extra_volumes $extra_volumes -v "$src:$src"
@@ -97,6 +111,12 @@ function claudez
       set claude_args $claude_args $argv[$i]
     end
     set i (math $i + 1)
+  end
+  if test -z "$image_name"; and test -f (pwd)/.claudez-image
+    set image_name (string trim -- (cat (pwd)/.claudez-image))
+  end
+  if test -z "$image_name"
+    set image_name claudez
   end
   mkdir -p $HOME/.local/share/claude $HOME/.local/state/claude
   docker run -it --rm \
@@ -116,7 +136,7 @@ function claudez
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --add-host host.docker.internal:host-gateway \
-    claudez $claude_args
+    $image_name $claude_args
 end
 # claudez:end'
 
