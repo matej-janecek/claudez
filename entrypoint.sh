@@ -39,6 +39,9 @@ if [ -n "$DOCKER_SOCK_GID" ]; then
     usermod -aG "$DOCKER_GROUP" "$USERNAME"
 fi
 
+# Resolve username for gosu so it calls initgroups() and applies supplementary groups
+GOSU_USER="$(getent passwd "$HOST_UID" | cut -d: -f1)"
+
 # Ensure home and config directories exist with correct ownership
 mkdir -p "$HOME/.claude" "$HOME/.config/claude-code" "$HOME/.local/state/claude" "$HOME/.local/share/claude"
 touch "$HOME/.claude.json"
@@ -62,8 +65,8 @@ if [ -n "$NATIVE_BIN" ] && [ -x "$HOME/.local/share/claude/versions/$NATIVE_BIN"
     ln -sf "$HOME/.local/share/claude/versions/$NATIVE_BIN" "$HOME/.local/bin/claude"
     chown -h "$USER_ID" "$HOME/.local/bin" "$HOME/.local/bin/claude"
     export PATH="$HOME/.local/bin:$PATH"
-    exec gosu "$USER_ID" "$HOME/.local/share/claude/versions/$NATIVE_BIN" "${SKIP_PERMS[@]}" "$@"
+    exec gosu "$GOSU_USER" "$HOME/.local/share/claude/versions/$NATIVE_BIN" "${SKIP_PERMS[@]}" "$@"
 fi
 
 # Fallback to npm-installed claude
-exec gosu "$USER_ID" claude "${SKIP_PERMS[@]}" "$@"
+exec gosu "$GOSU_USER" claude "${SKIP_PERMS[@]}" "$@"
