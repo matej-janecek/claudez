@@ -40,6 +40,7 @@ claudez() {
   local claude_args=()
   local image_name=""
   local use_docker=0
+  local allow_root=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --image)
@@ -63,6 +64,10 @@ claudez() {
         use_docker=1
         shift
         ;;
+      --allow-root)
+        allow_root=1
+        shift
+        ;;
       *)
         claude_args+=("$1")
         shift
@@ -77,6 +82,7 @@ claudez() {
         \#*|"") ;;
         image) [[ -z "$image_name" ]] && image_name="$value" ;;
         docker) [[ "$value" == "true" ]] && use_docker=1 ;;
+        allow-root) [[ "$value" == "true" ]] && allow_root=1 ;;
       esac
     done < "$(pwd)/.claudez"
   fi
@@ -116,6 +122,7 @@ claudez() {
     -e HOST_GID="$(id -g)" \
     -w "$(pwd)" \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
+    -e CLAUDEZ_ALLOW_ROOT="$allow_root" \
     -e DISPLAY="$DISPLAY" \
     $([[ -d /tmp/.X11-unix ]] && echo "-v /tmp/.X11-unix:/tmp/.X11-unix") \
     --add-host host.docker.internal:host-gateway \
@@ -131,6 +138,7 @@ function claudez
   set -l claude_args
   set -l image_name ""
   set -l use_docker 0
+  set -l allow_root 0
   set -l i 1
   while test $i -le (count $argv)
     if test "$argv[$i]" = "--image"
@@ -145,6 +153,8 @@ function claudez
       set network_args $network_args --network $argv[$i]
     else if test "$argv[$i]" = "--docker"
       set use_docker 1
+    else if test "$argv[$i]" = "--allow-root"
+      set allow_root 1
     else
       set claude_args $claude_args $argv[$i]
     end
@@ -162,6 +172,8 @@ function claudez
         set image_name $value
       else if test "$key" = docker; and test "$value" = true
         set use_docker 1
+      else if test "$key" = allow-root; and test "$value" = true
+        set allow_root 1
       end
     end < (pwd)/.claudez
   end
@@ -207,6 +219,7 @@ function claudez
     -e HOST_GID=(id -g) \
     -w (pwd) \
     -e CLAUDE_CODE_SKIP_PERMISSIONS=1 \
+    -e CLAUDEZ_ALLOW_ROOT=$allow_root \
     -e DISPLAY=$DISPLAY \
     (test -d /tmp/.X11-unix; and echo "-v /tmp/.X11-unix:/tmp/.X11-unix") \
     --add-host host.docker.internal:host-gateway \
