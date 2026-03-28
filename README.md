@@ -81,13 +81,31 @@ Or set per-project defaults in a `.claudez` config file:
 ```
 image=claudez-rust
 docker=true
+volume=/data/models
+volume=/shared/libs:/opt/libs:ro
 ```
 
 ```bash
-claudez   # automatically uses claudez-rust with Docker socket
+claudez   # automatically uses claudez-rust with Docker socket + volumes
 ```
 
-CLI flags (`--image`, `--docker`) override `.claudez` values.
+CLI flags (`--image`, `--docker`, `-v`) override or extend `.claudez` values. Volumes from both sources are additive. Non-existent volume paths produce a warning before launch.
+
+### Managing `.claudez` with `claudez config`
+
+Instead of editing `.claudez` by hand, use the `config` subcommand:
+
+```bash
+claudez config                              # show current config
+claudez config image claudez-rust           # set image
+claudez config image                        # unset image
+claudez config docker on                    # enable Docker socket
+claudez config docker off                   # disable Docker socket
+claudez config volume /data/models          # add volume mount
+claudez config volume /src:/dst:ro          # add volume (full Docker syntax)
+claudez config volume --remove /data/models # remove volume mount
+claudez config --reset                      # delete .claudez file
+```
 
 Combine flags:
 

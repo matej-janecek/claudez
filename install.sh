@@ -157,7 +157,8 @@ USAGE
   if [[ -f "$(pwd)/.claudez" ]]; then
     while IFS='=' read -r key value || [[ -n "$key" ]]; do
       key="${key// /}"
-      value="${value// /}"
+      value="${value#"${value%%[![:space:]]*}"}"
+      value="${value%"${value##*[![:space:]]}"}"
       case "$key" in
         \#*|"") ;;
         image) [[ -z "$image_name" ]] && image_name="$value" ;;
