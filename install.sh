@@ -122,7 +122,7 @@ USAGE
   local extra_volumes=()
   local network_args=()
   local docker_args=()
-  local claude_args=()
+  local claude_args=(--effort=max)
   local image_name=""
   local use_docker=0
   while [[ $# -gt 0 ]]; do
@@ -295,7 +295,7 @@ function claudez
   set -l extra_volumes
   set -l network_args
   set -l docker_args
-  set -l claude_args
+  set -l claude_args --effort=max
   set -l image_name ""
   set -l use_docker 0
   set -l i 1

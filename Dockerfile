@@ -10,7 +10,15 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    php-cli \
+    php-common \
+    php-curl \
+    php-mbstring \
+    php-xml \
+    php-zip \
+    composer \
     ffmpeg \
+    gettext \
     git \
     jq \
     gosu \
